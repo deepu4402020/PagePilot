@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "CareerOps Copilot",
+  "version": "1.0",
+  "description": "AI-powered Chrome Extension to chat with pages and auto-fill job applications.",
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Click to open CareerOps Copilot"
+  },
+  "side_panel": {
+    "default_path": "index.html"
+  }
+}
