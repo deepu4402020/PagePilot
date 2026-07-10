@@ -291,7 +291,7 @@ function AutofillTab() {
       <div className="autofill-icon">🚀</div>
       <h3>Auto-Fill Application</h3>
       <p>
-        Click below to automatically fill out the job application form on this page 
+        Click below to automatically fill out the job application form on this page
         using facts the agent has memorized about you from your chats.
       </p>
 
