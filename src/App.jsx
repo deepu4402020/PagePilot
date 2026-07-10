@@ -2,38 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 
 const BACKEND_URL = 'http://localhost:8000';
 
-// Default empty profile structure
-const EMPTY_PROFILE = {
-  fullName: '',
-  email: '',
-  phone: '',
-  location: '',
-  linkedin: '',
-  currentTitle: '',
-  summary: '',
-  experience: '',
-  education: '',
-  skills: ''
-};
-
 export default function App() {
   const [activeTab, setActiveTab] = useState('chat');
-  const [profile, setProfile] = useState(EMPTY_PROFILE);
-  const [profileLoaded, setProfileLoaded] = useState(false);
-
-  // Load profile from Chrome storage on mount (persists forever)
-  useEffect(() => {
-    if (chrome?.storage?.local) {
-      chrome.storage.local.get(['resumeProfile'], (result) => {
-        if (result.resumeProfile) {
-          setProfile({ ...EMPTY_PROFILE, ...result.resumeProfile });
-        }
-        setProfileLoaded(true);
-      });
-    } else {
-      setProfileLoaded(true);
-    }
-  }, []);
 
   return (
     <div className="app-container">
@@ -50,12 +20,6 @@ export default function App() {
           <span className="tab-icon">💬</span> Chat
         </button>
         <button
-          className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`}
-          onClick={() => setActiveTab('profile')}
-        >
-          <span className="tab-icon">👤</span> Profile
-        </button>
-        <button
           className={`tab-button ${activeTab === 'autofill' ? 'active' : ''}`}
           onClick={() => setActiveTab('autofill')}
         >
@@ -64,23 +28,19 @@ export default function App() {
       </div>
 
       <div className="tab-content">
-        {activeTab === 'chat' && <ChatTab profile={profile} />}
-        {activeTab === 'profile' && profileLoaded && (
-          <ProfileTab profile={profile} setProfile={setProfile} />
-        )}
-        {activeTab === 'autofill' && <AutofillTab profile={profile} />}
+        {activeTab === 'chat' && <ChatTab />}
+        {activeTab === 'autofill' && <AutofillTab />}
       </div>
     </div>
   );
 }
 
-
 // =============================================
 // CHAT TAB — Talk to the page + trigger actions
 // =============================================
-function ChatTab({ profile }) {
+function ChatTab() {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hey! I can help you interact with this page. Try asking me to click buttons, fill forms, or describe what\'s on the page.' }
+    { role: 'assistant', content: 'Hey! I can help you interact with this page. I also automatically remember important details about you as we chat!' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -128,11 +88,6 @@ function ChatTab({ profile }) {
       }
 
       // 3. Send to backend
-      const profileText = Object.entries(profile)
-        .filter(([, v]) => v)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join('\n');
-
       let res;
       try {
         res = await fetch(`${BACKEND_URL}/api/chat`, {
@@ -140,7 +95,6 @@ function ChatTab({ profile }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: userMessage,
-            profile: profileText,
             page_context: pageContext,
             page_text: pageText,
             tab_id: tab.id,
@@ -161,6 +115,9 @@ function ChatTab({ profile }) {
       if (data.tool_calls && data.tool_calls.length > 0) {
         for (const tool of data.tool_calls) {
           try {
+            // Memory tool is handled on backend, don't execute it on frontend
+            if (tool.type === 'save_user_fact') continue;
+
             const result = await chrome.tabs.sendMessage(tab.id, {
               action: 'execute_tool',
               tool: tool
@@ -227,91 +184,15 @@ function ChatTab({ profile }) {
   );
 }
 
-
-// =============================================
-// PROFILE TAB — Structured form saved to Chrome storage
-// =============================================
-function ProfileTab({ profile, setProfile }) {
-  const [saved, setSaved] = useState(false);
-
-  const updateField = (field, value) => {
-    setProfile(prev => ({ ...prev, [field]: value }));
-    setSaved(false); // Mark as unsaved when editing
-  };
-
-  const saveProfile = () => {
-    if (chrome?.storage?.local) {
-      chrome.storage.local.set({ resumeProfile: profile }, () => {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
-      });
-    }
-  };
-
-  // Each field definition: [key, label, placeholder, isTextarea]
-  const fields = [
-    ['fullName', 'Full Name', 'John Doe', false],
-    ['email', 'Email', 'john@example.com', false],
-    ['phone', 'Phone', '+1 555-123-4567', false],
-    ['location', 'Location', 'San Francisco, CA', false],
-    ['linkedin', 'LinkedIn URL', 'https://linkedin.com/in/johndoe', false],
-    ['currentTitle', 'Current Title', 'Software Engineer', false],
-    ['summary', 'Summary / Objective', 'Experienced developer with 5+ years...', true],
-    ['experience', 'Work Experience', 'Company A — Role — 2020-2023\n• Did X, Y, Z', true],
-    ['education', 'Education', 'B.S. Computer Science — MIT — 2020', true],
-    ['skills', 'Skills', 'JavaScript, Python, React, Node.js', true],
-  ];
-
-  return (
-    <div className="profile-area">
-      <div className="profile-header">
-        <h3>Your Resume Profile</h3>
-        {saved && <span className="saved-badge">✓ Saved</span>}
-      </div>
-
-      {fields.map(([key, label, placeholder, isTextarea]) => (
-        <div className="profile-field" key={key}>
-          <label>{label}</label>
-          {isTextarea ? (
-            <textarea
-              value={profile[key]}
-              onChange={(e) => updateField(key, e.target.value)}
-              placeholder={placeholder}
-              rows={3}
-            />
-          ) : (
-            <input
-              type="text"
-              value={profile[key]}
-              onChange={(e) => updateField(key, e.target.value)}
-              placeholder={placeholder}
-            />
-          )}
-        </div>
-      ))}
-
-      <button className="btn-save" onClick={saveProfile}>
-        💾 Save Profile
-      </button>
-    </div>
-  );
-}
-
-
 // =============================================
 // AUTOFILL TAB — One-click form filling
 // =============================================
-function AutofillTab({ profile }) {
+function AutofillTab() {
   const [status, setStatus] = useState('idle'); // idle | loading | done | error
   const [results, setResults] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Check if profile has any data
-  const hasProfile = Object.values(profile).some(v => v.trim());
-
   const runAutofill = async () => {
-    if (!hasProfile) return;
-
     setStatus('loading');
     setResults([]);
     setErrorMsg('');
@@ -352,7 +233,6 @@ function AutofillTab({ profile }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            profile: profile,
             page_context: pageContext
           })
         });
@@ -366,7 +246,7 @@ function AutofillTab({ profile }) {
       if (!data.tool_calls || data.tool_calls.length === 0) {
         setStatus('done');
         setResults([]);
-        setErrorMsg('No matching fields found on this page.');
+        setErrorMsg('No matching fields found based on what the agent remembers about you.');
         return;
       }
 
@@ -412,19 +292,13 @@ function AutofillTab({ profile }) {
       <h3>Auto-Fill Application</h3>
       <p>
         Click below to automatically fill out the job application form on this page 
-        using your saved profile data.
+        using facts the agent has memorized about you from your chats.
       </p>
-
-      {!hasProfile && (
-        <div className="warning-card">
-          <p>⚠️ No profile data saved yet. Go to the Profile tab and fill in your details first.</p>
-        </div>
-      )}
 
       <button
         className="btn-autofill"
         onClick={runAutofill}
-        disabled={!hasProfile || status === 'loading'}
+        disabled={status === 'loading'}
       >
         {status === 'loading' ? (
           <><span className="spinner"></span> Filling...</>

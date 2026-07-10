@@ -3,6 +3,7 @@ import json
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from backend.models.schemas import AutofillRequest, AutofillResponse
+from backend.memory.profile_manager import get_user_facts
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -24,10 +25,10 @@ async def autofill_endpoint(request: AutofillRequest):
         llm = ChatOpenAI(model="gpt-4o", temperature=0)
         structured_llm = llm.with_structured_output(AutofillResult)
         
-        system_prompt = """You are CareerOps Copilot. Your job is to auto-fill a job application form using the user's profile.
+        system_prompt = """You are CareerOps Copilot. Your job is to auto-fill a job application form using the user's saved facts.
 
-User Profile:
-{profile}
+Known Facts about the User:
+{user_facts}
 
 Form Elements on the page:
 {page_context}
@@ -41,17 +42,17 @@ INSTRUCTIONS:
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", system_prompt),
-            ("user", "Auto-fill this form with my profile data.")
+            ("user", "Auto-fill this form with my saved facts.")
         ])
         
         page_context_str = json.dumps([el.model_dump() for el in request.page_context], indent=2)
-        profile_str = json.dumps(request.profile, indent=2)
+        user_facts_str = "\n".join(get_user_facts()) or "No facts saved yet."
 
         chain = prompt | structured_llm
         
         # Async invoke
         result: AutofillResult = await chain.ainvoke({
-            "profile": profile_str,
+            "user_facts": user_facts_str,
             "page_context": page_context_str
         })
         

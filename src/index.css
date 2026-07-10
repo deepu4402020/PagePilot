@@ -297,97 +297,7 @@ body {
   cursor: not-allowed;
 }
 
-/* ===== Profile Tab ===== */
-.profile-area {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
 
-.profile-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.profile-header h3 {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.saved-badge {
-  font-size: 11px;
-  color: var(--success);
-  background: rgba(52, 211, 153, 0.1);
-  padding: 4px 10px;
-  border-radius: 20px;
-  animation: fadeInUp 0.3s ease;
-}
-
-.profile-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.profile-field label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.profile-field input,
-.profile-field textarea {
-  padding: 10px 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: 13px;
-  outline: none;
-  transition: border-color var(--transition);
-}
-
-.profile-field input:focus,
-.profile-field textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-glow);
-}
-
-.profile-field input::placeholder,
-.profile-field textarea::placeholder {
-  color: var(--text-muted);
-}
-
-.profile-field textarea {
-  resize: vertical;
-  min-height: 70px;
-}
-
-.btn-save {
-  width: 100%;
-  padding: 12px;
-  background: var(--success);
-  color: #0f1117;
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  transition: all var(--transition);
-  margin-top: 4px;
-}
-
-.btn-save:hover {
-  background: var(--success-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(52, 211, 153, 0.25);
-}
 
 /* ===== Autofill Tab ===== */
 .autofill-area {
@@ -529,16 +439,4 @@ body {
   border-radius: 4px;
 }
 
-/* ===== No profile warning ===== */
-.warning-card {
-  background: rgba(251, 191, 36, 0.06);
-  border: 1px solid rgba(251, 191, 36, 0.15);
-  border-radius: var(--radius);
-  padding: 14px;
-  text-align: center;
-}
 
-.warning-card p {
-  color: var(--warning);
-  font-size: 12px;
-}

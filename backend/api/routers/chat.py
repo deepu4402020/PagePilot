@@ -4,6 +4,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from backend.models.schemas import ChatRequest, ChatResponse
 from backend.agents.browser_agent import get_agent_executor
 from backend.embeddings.vector_store import update_page_context, get_relevant_context
+from backend.memory.profile_manager import get_user_facts
 
 router = APIRouter()
 
@@ -35,7 +36,7 @@ async def chat_endpoint(request: ChatRequest):
         
         result = await agent_executor.ainvoke({
             "input": request.message,
-            "profile": request.profile if request.profile else "Not provided.",
+            "user_facts": "\n".join(get_user_facts()) or "No facts saved yet.",
             "rag_context": rag_context if rag_context else "No semantic context available.",
             "page_elements": page_context_str,
             "chat_history": chat_history

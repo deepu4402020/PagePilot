@@ -15,7 +15,6 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
-    profile: str
     page_context: List[PageElement]
     page_text: str = ""
     history: List[ChatMessage] = []
@@ -26,7 +25,6 @@ class ChatResponse(BaseModel):
     tool_calls: Optional[List[Dict[str, Any]]] = None
 
 class AutofillRequest(BaseModel):
-    profile: Dict[str, Any]
     page_context: List[PageElement]
 
 class AutofillResponse(BaseModel):
