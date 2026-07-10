@@ -3,3 +3,8 @@ uvicorn
 pydantic
 openai
 python-dotenv
+langchain
+langchain-openai
+langchain-community
+chromadb
+beautifulsoup4
