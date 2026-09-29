@@ -1,32 +1,51 @@
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+"""
+PagePilot — Pydantic Schemas for API Request/Response Models
+"""
+
+from pydantic import BaseModel, Field
+
 
 class PageElement(BaseModel):
-    selector: str
+    """Represents an interactive element extracted from the webpage DOM."""
+    selector: str = Field(description="Primary CSS selector")
+    fallback_selectors: list[str] | None = Field(
+        default=None,
+        description="Prioritized fallback selector chain for resilient element targeting",
+    )
     tagName: str
-    type: Optional[str] = None
+    type: str | None = None
     text: str = ""
     label: str = ""
-    options: Optional[List[Dict[str, str]]] = None
+    options: list[dict[str, str]] | None = None
+
 
 class ChatMessage(BaseModel):
+    """A single message in the chat history."""
     role: str
     content: str
 
+
 class ChatRequest(BaseModel):
+    """Request body for the /api/chat endpoint."""
     message: str
-    page_context: List[PageElement]
+    page_context: list[PageElement]
     page_text: str = ""
-    history: List[ChatMessage] = []
-    tab_id: Optional[int] = None
+    history: list[ChatMessage] = []
+    tab_id: int | None = None
+
 
 class ChatResponse(BaseModel):
+    """Response body from the /api/chat endpoint."""
     reply: str
-    tool_calls: Optional[List[Dict[str, Any]]] = None
+    tool_calls: list[dict] | None = None
+
 
 class AutofillRequest(BaseModel):
-    page_context: List[PageElement]
+    """Request body for the /api/autofill endpoint."""
+    page_context: list[PageElement]
+
 
 class AutofillResponse(BaseModel):
+    """Response body from the /api/autofill endpoint."""
     reply: str
-    tool_calls: List[Dict[str, Any]] = []
+    tool_calls: list[dict] = []

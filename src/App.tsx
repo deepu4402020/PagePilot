@@ -1,14 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  ChatMessage, 
+  PageElement, 
+  ToolCall, 
+  ExecutionResult 
+} from './types';
 
 const BACKEND_URL = 'http://localhost:8000';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'autofill'>('chat');
 
   return (
     <div className="app-container">
       <div className="app-header">
-        <div className="app-title">CareerOps Copilot</div>
+        <div className="app-title">PagePilot</div>
         <div className="app-subtitle">AI-powered browser assistant</div>
       </div>
 
@@ -39,12 +45,12 @@ export default function App() {
 // CHAT TAB — Talk to the page + trigger actions
 // =============================================
 function ChatTab() {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: 'Hey! I can help you interact with this page. I also automatically remember important details about you as we chat!' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -62,10 +68,10 @@ function ChatTab() {
     try {
       // 1. Get active tab
       const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-      if (!tab) throw new Error('No active tab found');
+      if (!tab || !tab.id) throw new Error('No active tab found');
 
       // 2. Extract page context from content.js
-      let pageContext = [];
+      let pageContext: PageElement[] = [];
       let pageText = "";
       try {
         const response = await chrome.tabs.sendMessage(tab.id, { action: 'extract_context' });
@@ -113,7 +119,7 @@ function ChatTab() {
 
       // 4. If there's a tool call, execute it on the page
       if (data.tool_calls && data.tool_calls.length > 0) {
-        for (const tool of data.tool_calls) {
+        for (const tool of data.tool_calls as ToolCall[]) {
           try {
             // Memory tool is handled on backend, don't execute it on frontend
             if (tool.type === 'save_user_fact') continue;
@@ -138,7 +144,7 @@ function ChatTab() {
         setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
       }
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'error', content: error.message }]);
+      setMessages(prev => [...prev, { role: 'error', content: error instanceof Error ? error.message : String(error) }]);
     } finally {
       setIsLoading(false);
     }
@@ -151,7 +157,7 @@ function ChatTab() {
           <div key={idx} className={`message-bubble ${msg.role}`}>
             {(msg.role === 'assistant' || msg.role === 'user') && (
               <div className="message-sender">
-                {msg.role === 'user' ? 'You' : 'Copilot'}
+                {msg.role === 'user' ? 'You' : 'PagePilot'}
               </div>
             )}
             {msg.content}
@@ -188,8 +194,8 @@ function ChatTab() {
 // AUTOFILL TAB — One-click form filling
 // =============================================
 function AutofillTab() {
-  const [status, setStatus] = useState('idle'); // idle | loading | done | error
-  const [results, setResults] = useState([]);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [results, setResults] = useState<ExecutionResult[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
 
   const runAutofill = async () => {
@@ -200,10 +206,10 @@ function AutofillTab() {
     try {
       // 1. Get active tab
       const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-      if (!tab) throw new Error('No active tab found');
+      if (!tab || !tab.id) throw new Error('No active tab found');
 
       // 2. Extract page context
-      let pageContext = [];
+      let pageContext: PageElement[] = [];
       try {
         const response = await chrome.tabs.sendMessage(tab.id, { action: 'extract_context' });
         if (response?.context) pageContext = response.context;
@@ -251,8 +257,8 @@ function AutofillTab() {
       }
 
       // 4. Execute all tool calls on the page (batch mode with delays)
-      const executionResults = [];
-      for (const toolCall of data.tool_calls) {
+      const executionResults: ExecutionResult[] = [];
+      for (const toolCall of data.tool_calls as ToolCall[]) {
         try {
           const result = await chrome.tabs.sendMessage(tab.id, {
             action: 'execute_tool',
@@ -261,7 +267,7 @@ function AutofillTab() {
           executionResults.push({
             success: true,
             action: toolCall.type,
-            selector: toolCall.selector,
+            selector: toolCall.selector || '',
             value: toolCall.value || '',
             message: result?.message || 'Done'
           });
@@ -269,7 +275,7 @@ function AutofillTab() {
           executionResults.push({
             success: false,
             action: toolCall.type,
-            selector: toolCall.selector,
+            selector: toolCall.selector || '',
             value: toolCall.value || '',
             message: 'Failed'
           });
@@ -282,7 +288,7 @@ function AutofillTab() {
       setStatus('done');
     } catch (error) {
       setStatus('error');
-      setErrorMsg(error.message);
+      setErrorMsg(error instanceof Error ? error.message : String(error));
     }
   };
 
